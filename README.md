@@ -1,52 +1,23 @@
-# Solid + Vite + CRXJS
+# BBOND - Quick bond your string from web
 
-This template helps you quickly start developing Chrome extensions using Solid, TypeScript, and Vite. It includes the CRXJS Vite plugin for seamless Chrome extension development.
+BBOND is a Chrome extension which quickly bonds
+your selection from webpage to Markdown or HTML format.
 
 ## Features
 
-- Solid with TypeScript
-- TypeScript support
-- Vite build tool
-- CRXJS Vite plugin integration
-- Chrome extension manifest configuration
+- Open popup / sidepanel and start recording.
+- When you trigger 'copy' (e.g. `Ctrl + C` or context menu), the extension try to parse the selection and join to the buffer.
+- Open popup / sidepanel again and use the buffer!
 
-## Quick Start
+### How content is parsed?
 
-1. Install dependencies:
+- Basically, this extension do not look your clipboard content, but try to extract the selection range from the webpage.
+- It takes the DOM nodes and try to parse into Markdown if need.
 
-```bash
-npm install
-```
+### Data and Privacy
 
-2. Start development server:
-
-```bash
-npm run dev
-```
-
-3. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory.
-
-4. Build for production:
-
-```bash
-npm run build
-```
-
-## Project Structure
-
-- `src/popup/` - Extension popup UI
-- `src/content/` - Content scripts
-- `manifest.config.ts` - Chrome extension manifest configuration
-
-## Documentation
-
-- [Solid Documentation](https://solidjs.com/docs)
-- [Vite Documentation](https://vitejs.dev/)
-- [CRXJS Documentation](https://crxjs.dev/vite-plugin)
-
-## Chrome Extension Development Notes
-
-- Use `manifest.config.ts` to configure your extension
-- CRXJS plugin automatically handles manifest generation
-- Content scripts should be placed in `src/content/`
-- Popup UI should be placed in `src/popup/`
+- This extension do not read your clipboard content.
+- This extension may read the content of the webpage only when you trigger 'copy' event.
+- Only your selection content is parsed and stored during recording.
+- The parsed content may be stored in your local storage.
+- It does not use any network.
