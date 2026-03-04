@@ -16,17 +16,19 @@ import { defaultDark, defaultLight } from "./cm_thm_default";
 
 import { cmLangExt } from "./lang_ext";
 
+export type FnContainer = {
+  getter?: () => string;
+  setter?: (text: string) => void;
+};
+
 export interface Props extends Omit<
   JSX.HTMLAttributes<HTMLDivElement>,
   "onChange"
 > {
   language?: string;
   initText?: string;
-  disabled?: boolean;
-  maxHeight?: string;
 
-  codeGetBox: [(() => string)?];
-  codeSetText?: [((text: string) => void)?];
+  fn: FnContainer;
   onKeyModEnter?: () => void; // Enter with modifier
   onTextChange?: (text: string) => void;
 }
@@ -35,11 +37,8 @@ const CodeEdit: Component<Props> = (props) => {
   const [local, rest] = splitProps(props, [
     "language",
     "initText",
-    "disabled",
-    "maxHeight",
     "class",
-    "codeGetBox",
-    "codeSetText",
+    "fn",
     "onTextChange",
   ]);
   let containerRef!: HTMLDivElement;
@@ -117,7 +116,6 @@ const CodeEdit: Component<Props> = (props) => {
           },
         ]),
       ),
-      EditorState.readOnly.of(!!local.disabled),
       themeCompartment.of(getThemeExt()),
       langCompartment.of([]),
       Theme,
@@ -162,19 +160,18 @@ const CodeEdit: Component<Props> = (props) => {
       parent: containerRef,
     });
 
-    props.codeGetBox[0] = () => editorView?.state.doc.toString() || "";
-    if (props.codeSetText) {
-      props.codeSetText[0] = (text: string) => {
-        if (editorView) {
-          editorView.dispatch({
-            changes: { from: 0, to: editorView.state.doc.length, insert: text },
-            selection: { anchor: text.length },
-            effects: EditorView.scrollIntoView(text.length),
-          });
-          // Do not steal focus on text replacement to prevent interrupting user
-        }
-      };
-    }
+    local.fn.getter = () => editorView?.state.doc.toString() || "";
+    local.fn.setter = (text: string) => {
+      if (!editorView) {
+        console.warn("EditorView not initialized yet");
+        return;
+      }
+      editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: text },
+        selection: { anchor: text.length },
+        effects: EditorView.scrollIntoView(text.length),
+      });
+    };
   });
 
   // Reactively update language if it changes

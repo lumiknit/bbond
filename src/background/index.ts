@@ -9,25 +9,16 @@ import {
 
 let creatingOffscreen: Promise<void> | null = null;
 async function setupOffscreenDocument() {
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
-    documentUrls: ["src/offscreen/offscreen.html"],
-  });
-
-  if (existingContexts.length > 0) {
-    return;
-  }
-
   if (creatingOffscreen) {
-    await creatingOffscreen;
-  } else {
-    creatingOffscreen = chrome.offscreen.createDocument({
-      url: "src/offscreen/offscreen.html",
-      reasons: [chrome.offscreen.Reason.DOM_PARSER],
-      justification: "HTML to Markdown parsing using DOM APIs",
-    });
-    await creatingOffscreen;
+    return await creatingOffscreen;
   }
+
+  creatingOffscreen = chrome.offscreen.createDocument({
+    url: "src/offscreen/offscreen.html",
+    reasons: [chrome.offscreen.Reason.DOM_PARSER],
+    justification: "HTML to Markdown parsing using DOM APIs",
+  });
+  await creatingOffscreen;
 }
 
 const applySepConfig = (history: string, cfg: SepStrategy): string => {
@@ -118,13 +109,17 @@ messageHandlers.set("copy-selection", async (message: MsgCopySelection) => {
 
   const updatedHistory = await mergeHistory(config, history, text, html);
   if (updatedHistory) {
-    console.log("Updated History:", updatedHistory);
+    console.log("History updated.");
     await storeClipboardHistory(updatedHistory);
   }
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (typeof message !== "object" || !message.type) return;
+  if (typeof message !== "object" || !message.type) {
+    console.error("Invalid message format", message);
+    return;
+  }
+  console.log("Received message of type:", message.type);
   const handler = messageHandlers.get(message.type);
   if (handler) {
     handler(message);

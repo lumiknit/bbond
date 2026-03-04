@@ -9,6 +9,7 @@ const turndownService = new TurndownService({
 
 chrome.runtime.onMessage.addListener(
   (message: Message | any, _sender, sendResponse) => {
+    console.log("Message recieved", message.type);
     switch (message.type) {
       case "html-purify": {
         const { html } = message.payload;

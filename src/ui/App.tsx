@@ -1,5 +1,5 @@
 import { Component, createSignal, onCleanup, onMount } from "solid-js";
-import CodeEdit from "../components/code/CodeEdit";
+import CodeEdit, { FnContainer } from "../components/code/CodeEdit";
 import {
   Config,
   defaultConfig,
@@ -67,10 +67,8 @@ const SepSelect: Component<SepSelectProps> = (props) => {
 };
 
 const App: Component = () => {
-  const codeGetBox: [(() => string)?] = [];
-  const codeSetText: [((text: string) => void)?] = [];
+  const fnContainer: FnContainer = {};
   const [loaded, setLoaded] = createSignal(false);
-  const [initialText, setInitialText] = createSignal("");
   const [isRecording, setIsRecording] = createSignal(true);
   const [config, setConfig] = createSignal<Config>(defaultConfig);
   const [showConfig, setShowConfig] = createSignal(false);
@@ -92,14 +90,14 @@ const App: Component = () => {
     setIsRecording(isRecordingVal);
     if (cfg) setConfig(cfg);
 
-    setInitialText(history);
     setLoaded(true);
 
     // Give CodeEdit a brief moment to mount before forcing a scroll to bottom
-    codeSetText[0]?.(history);
+    fnContainer.setter?.(history);
 
     // Auto copy on window focus
     const handleFocus = async () => {
+      console.log("handleFocus");
       if (config().autoStartRecordingOnFocus && !isRecording()) {
         storeIsRecording(true);
       }
@@ -107,7 +105,7 @@ const App: Component = () => {
       const mode = config().autoCopyOnFocus;
       if (mode === "none") return;
 
-      const textToCopy = codeGetBox[0]?.() || initialText();
+      const textToCopy = fnContainer.getter?.();
       if (!textToCopy) return;
 
       try {
@@ -135,22 +133,24 @@ const App: Component = () => {
     console.log("Adding storage listener");
     const removeListener = addStorageChangeListener({
       clipboardHistory: (newText) => {
-        console.log("CHANGE", newText);
-        if (codeGetBox[0] && codeGetBox[0]() !== newText) {
-          if (codeSetText[0]) {
-            codeSetText[0](newText);
-          }
+        console.log("Clipboard history changed");
+        if (fnContainer.getter?.() === newText) {
+          return;
         }
+        fnContainer.setter?.(newText);
       },
       isRecording: (newVal) => {
+        console.log("isRecording changed", newVal);
         setIsRecording(newVal);
       },
       config: (newConfig) => {
+        console.log("Config changed", newConfig);
         setConfig(newConfig);
       },
     });
 
     cleanUpFn = () => {
+      console.log("Cleaning up storage listener and focus listener");
       removeListener();
       window.removeEventListener("focus", handleFocus);
     };
@@ -161,12 +161,8 @@ const App: Component = () => {
   });
 
   const handleClearClick = () => {
-    const updatedHistory = "";
-    setInitialText(updatedHistory);
-    storeClipboardHistory(updatedHistory);
-    if (codeSetText[0]) {
-      codeSetText[0](updatedHistory);
-    }
+    storeClipboardHistory("");
+    fnContainer.setter?.("");
   };
 
   const toggleRecording = () => {
@@ -175,7 +171,7 @@ const App: Component = () => {
   };
 
   const handleCopyClick = async () => {
-    const textToCopy = codeGetBox[0]?.() || initialText();
+    const textToCopy = fnContainer.getter?.();
     if (textToCopy) {
       try {
         await navigator.clipboard.writeText(textToCopy);
@@ -184,11 +180,13 @@ const App: Component = () => {
         console.error("Copy failed", err);
         toast.error("Copy failed");
       }
+    } else {
+      toast.error("Nothing to copy");
     }
   };
 
   const handleCopyAsHtmlClick = async () => {
-    const textToCopy = codeGetBox[0]?.() || initialText();
+    const textToCopy = fnContainer.getter?.();
     if (textToCopy) {
       try {
         const m = marked(textToCopy, { async: false });
@@ -202,6 +200,8 @@ const App: Component = () => {
         console.error("Copy as HTML failed", err);
         toast.error("Copy as HTML failed");
       }
+    } else {
+      toast.error("Nothing to copy");
     }
   };
 
@@ -279,11 +279,9 @@ const App: Component = () => {
           {loaded() && (
             <CodeEdit
               language="markdown"
-              initText={initialText()}
-              codeGetBox={codeGetBox}
-              codeSetText={codeSetText}
+              fn={fnContainer}
               onTextChange={(val) => {
-                chrome.storage.local.set({ clipboardHistory: val });
+                storeClipboardHistory(val);
               }}
             />
           )}

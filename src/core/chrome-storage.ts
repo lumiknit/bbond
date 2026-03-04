@@ -110,7 +110,6 @@ export const addStorageChangeListener = (
   const listener = (changes: {
     [key: string]: chrome.storage.StorageChange;
   }) => {
-    console.log("Storage changed", changes);
     if (changes[KEY_CLIPBOARD] && handler.clipboardHistory) {
       handler.clipboardHistory(changes[KEY_CLIPBOARD].newValue as string);
     }
