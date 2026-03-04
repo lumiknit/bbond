@@ -28,7 +28,7 @@ export default defineManifest({
       match_about_blank: true,
     },
   ],
-  permissions: ["sidePanel", "contentSettings", "storage", "offscreen"],
+  permissions: ["sidePanel", "storage", "offscreen"],
   side_panel: {
     default_path: "src/ui/sidepanel.html",
   },
