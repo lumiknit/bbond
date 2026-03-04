@@ -7,19 +7,26 @@ import {
   storeIsRecording,
 } from "@/core/chrome-storage";
 
-let creatingOffscreen: Promise<void> | null = null;
-async function setupOffscreenDocument() {
-  if (creatingOffscreen) {
-    return await creatingOffscreen;
+let created: boolean = false;
+function setupOffscreenDocument() {
+  if (created) {
+    return;
   }
 
-  creatingOffscreen = chrome.offscreen.createDocument({
-    url: "src/offscreen/offscreen.html",
-    reasons: [chrome.offscreen.Reason.DOM_PARSER],
-    justification: "HTML to Markdown parsing using DOM APIs",
-  });
-  await creatingOffscreen;
+  chrome.offscreen
+    .createDocument({
+      url: "src/offscreen/offscreen.html",
+      reasons: [chrome.offscreen.Reason.DOM_PARSER],
+      justification: "HTML to Markdown parsing using DOM APIs",
+    })
+    .then(() => {
+      created = true;
+    })
+    .catch((e) => {
+      console.error("Failed to create offscreen document", e);
+    });
 }
+setupOffscreenDocument();
 
 const applySepConfig = (history: string, cfg: SepStrategy): string => {
   if (cfg.condition === "always") {
@@ -61,7 +68,6 @@ const mergeHistory = async (
   let contentToAppend = "";
   if (config.contentsHandleOption === "markdown" && html) {
     try {
-      await setupOffscreenDocument();
       const markdown = await htmlToMarkdown(html);
       if (markdown) {
         contentToAppend = markdown;
@@ -73,7 +79,6 @@ const mergeHistory = async (
     if (!contentToAppend) contentToAppend = text; // Fallback
   } else if (config.contentsHandleOption === "html") {
     try {
-      await setupOffscreenDocument();
       const cleanHtml = await purifyHtml(html);
       if (cleanHtml) {
         contentToAppend = cleanHtml;
